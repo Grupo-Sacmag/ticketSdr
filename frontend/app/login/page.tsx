@@ -1,0 +1,227 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+
+export default function LoginPage() {
+  const router = useRouter()
+
+  const [formData, setFormData] = useState({
+    correo: '',
+    password: '',
+  })
+
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    })
+  }
+
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      console.error('LOGIN NEXT:', response.status, data)
+
+      if (!response.ok) {
+        if (
+          response.status === 403 &&
+          data?.error === 'CUENTA_NO_VERIFICADA'
+        ) {
+          const correo = data.correo || formData.correo
+
+          sessionStorage.setItem(
+            'verificacion',
+            JSON.stringify({ correo })
+          )
+
+          router.push('/verificar')
+          return
+        }
+
+        setError('Correo o contraseña incorrectos')
+        setFormData({
+          correo: '',
+          password: '',
+        })
+
+        return
+      }
+
+      if (data.passwordTemporal) {
+        router.push('/cambiar-password')
+      } else {
+        router.push('/dashboard')
+      }
+    } catch {
+      setError('Correo o contraseña incorrectos')
+      setFormData({
+        correo: '',
+        password: '',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div style={styles.container}>
+      <div style={styles.card}>
+        <h2 style={styles.title}>Grupo SACMAG</h2>
+        <p style={styles.subtitle}>Sistema de Tickets</p>
+
+        <form onSubmit={handleSubmit}>
+          <div style={styles.field}>
+            <label style={styles.label}>
+              Correo corporativo
+            </label>
+
+            <input
+              style={styles.input}
+              type="email"
+              name="correo"
+              placeholder="usuario@grupo-sacmag.com.mx"
+              value={formData.correo}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div style={styles.field}>
+            <label style={styles.label}>
+              Contraseña
+            </label>
+
+            <input
+              style={styles.input}
+              type="password"
+              name="password"
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          {error && (
+            <p style={styles.error}>
+              {error}
+            </p>
+          )}
+
+          <button
+            style={styles.button}
+            type="submit"
+            disabled={loading}
+          >
+            {loading
+              ? 'Ingresando...'
+              : 'Iniciar sesión'}
+          </button>
+        </form>
+
+        <p style={styles.link}>
+          ¿No tienes cuenta?{' '}
+          <Link href="/register">
+            Regístrate aquí
+          </Link>
+        </p>
+      </div>
+    </div>
+  )
+}
+
+const styles: Record<string, React.CSSProperties> = {
+  container: {
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f0f2f5',
+  },
+
+  card: {
+    backgroundColor: 'white',
+    padding: '2rem',
+    borderRadius: '8px',
+    boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+    width: '100%',
+    maxWidth: '400px',
+  },
+
+  title: {
+    textAlign: 'center',
+    color: '#1a1a2e',
+    marginBottom: '0.25rem',
+  },
+
+  subtitle: {
+    textAlign: 'center',
+    color: '#666',
+    marginBottom: '1.5rem',
+  },
+
+  field: {
+    marginBottom: '1rem',
+  },
+
+  label: {
+    display: 'block',
+    marginBottom: '0.4rem',
+    color: '#333',
+    fontSize: '0.9rem',
+  },
+
+  input: {
+    width: '100%',
+    padding: '0.6rem 0.8rem',
+    borderRadius: '4px',
+    border: '1px solid #ccc',
+    fontSize: '1rem',
+    boxSizing: 'border-box',
+  },
+
+  button: {
+    width: '100%',
+    padding: '0.7rem',
+    backgroundColor: '#1a1a2e',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '1rem',
+  },
+
+  error: {
+    color: '#e53e3e',
+    fontSize: '0.9rem',
+    marginBottom: '1rem',
+  },
+
+  link: {
+    textAlign: 'center',
+    marginTop: '1rem',
+    fontSize: '0.9rem',
+  },
+}

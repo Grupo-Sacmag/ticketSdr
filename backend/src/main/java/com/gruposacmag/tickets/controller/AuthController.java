@@ -343,4 +343,45 @@ public class AuthController {
                     .body("Error: " + e.getMessage());
         }
     }
+
+    @GetMapping("/tiempo-codigo")
+        public ResponseEntity<?> tiempoCodigo(@RequestParam String correo) {
+            try {
+                Usuario usuario = usuarioRepository.findByCorreo(correo)
+                        .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+                if (usuario.getVerificado()) {
+                    return ResponseEntity.ok(Map.of(
+                            "verificado", true,
+                            "tieneCodigoActivo", false,
+                            "segundosRestantes", 0
+                    ));
+                }
+
+                if (usuario.getCodigoExpiracion() == null) {
+                    return ResponseEntity.ok(Map.of(
+                            "verificado", false,
+                            "tieneCodigoActivo", false,
+                            "segundosRestantes", 0
+                    ));
+                }
+
+                long segundos = java.time.Duration.between(
+                        java.time.LocalDateTime.now(),
+                        usuario.getCodigoExpiracion()
+                ).getSeconds();
+
+                segundos = Math.max(0, segundos);
+
+                return ResponseEntity.ok(Map.of(
+                        "verificado", false,
+                        "tieneCodigoActivo", segundos > 0,
+                        "segundosRestantes", segundos
+                ));
+
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Error: " + e.getMessage());
+            }
+        }
 }
