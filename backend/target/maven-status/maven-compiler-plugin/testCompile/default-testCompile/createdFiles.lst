@@ -1,0 +1,4 @@
+com\gruposacmag\tickets\service\AuthControllerTest.class
+com\gruposacmag\tickets\service\EmailServiceTest.class
+com\gruposacmag\tickets\TicketsApplicationTests.class
+com\gruposacmag\tickets\service\TicketServiceTest.class
